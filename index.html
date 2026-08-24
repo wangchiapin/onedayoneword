@@ -864,8 +864,7 @@
 
   copyAllWordsBtn.addEventListener('click', () => {
     if (selectedWords.length === 0) return alert('目前沒有選取任何詞彙！');
-    navigator.clipboard.writeText(selectedWords.join('
-')).then(() => {
+    navigator.clipboard.writeText(selectedWords.join('\n')).then(() => {
       alert(`已成功複製 ${selectedWords.length} 個詞彙！`);
     });
   });
@@ -1037,10 +1036,7 @@
       }
     }
     if (found) {
-      const confirmAdd = confirm(`【相似提醒】發現相似度達 ${Math.round(maxSim * 100)}% 的句子：
-「${found.text}」（位於：${found.type}）
-
-是否仍要新增此句子到「未使用句庫」？`);
+      const confirmAdd = confirm(`【相似提醒】發現相似度達 ${Math.round(maxSim * 100)}% 的句子：\n「${found.text}」（位於：${found.type}）\n\n是否仍要新增此句子到「未使用句庫」？`);
       if (!confirmAdd) return;
     }
 
@@ -1090,8 +1086,7 @@
 
   copySelectedSentenceBtn.addEventListener('click', () => {
     if (selectedSentences.length === 0) return alert('目前沒有選取任何句子！');
-    navigator.clipboard.writeText(selectedSentences.join('
-')).then(() => {
+    navigator.clipboard.writeText(selectedSentences.join('\n')).then(() => {
       alert(`已成功複製 ${selectedSentences.length} 條句子！`);
     });
   });
