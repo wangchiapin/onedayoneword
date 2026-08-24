@@ -3,61 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>詞庫管理系統 (Firebase 雲端同步版)</title>
-  <!-- 引入 SheetJS 函式庫解析與匯出 Excel -->
+  <title>語料庫管理系統</title>
+  <!-- 引入 SheetJS 處理 Excel 匯入/匯出 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+    :root {
+      --primary: #3498db;
+      --primary-hover: #2980b9;
+      --success: #27ae60;
+      --warning: #e67e22;
+      --danger: #e74c3c;
+      --purple: #8e44ad;
+      --dark: #2c3e50;
+      --bg-gray: #f8fafc;
+      --border-color: #ccd0d5;
+      --text-main: #333;
+      --text-muted: #7f8c8d;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
+
     body {
       background-color: #f4f6f8;
-      padding: 24px;
-      color: #333;
+      padding: 20px;
+      color: var(--text-main);
     }
+
     .container {
-      max-width: 1300px;
+      max-width: 1400px;
       margin: 0 auto;
       background: #fff;
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
-    h1 {
-      text-align: center;
+
+    /* 頂部導航列與標題 */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 20px;
-      font-size: 24px;
-      color: #2c3e50;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e2e8f0;
     }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-left h1 {
+      font-size: 22px;
+      color: var(--dark);
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 1px solid var(--primary);
+      background: #ebf5fb;
+      color: var(--primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
     .status-bar {
-      text-align: right;
       font-size: 13px;
-      color: #7f8c8d;
-      margin-bottom: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+
+    /* 分頁顯示控制 */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+    }
+
+    /* 通用元件 */
     .input-section {
       display: flex;
       gap: 10px;
       margin-bottom: 16px;
     }
+
     .input-section input {
       flex: 1;
       padding: 12px 16px;
-      font-size: 16px;
-      border: 1px solid #ccd0d5;
+      font-size: 15px;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       outline: none;
       transition: border-color 0.2s;
     }
+
     .input-section input:focus {
-      border-color: #3498db;
+      border-color: var(--primary);
     }
+
     .btn {
-      padding: 10px 16px;
-      font-size: 14px;
+      padding: 8px 14px;
+      font-size: 13px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -65,66 +130,65 @@
       transition: opacity 0.2s, background-color 0.2s;
       white-space: nowrap;
     }
+
     .btn:hover {
       opacity: 0.9;
     }
-    .btn-primary {
-      background-color: #3498db;
-      color: white;
-      font-size: 15px;
-      padding: 12px 20px;
-    }
-    .btn-import {
-      background-color: #27ae60;
-      color: white;
-    }
-    .btn-export {
-      background-color: #e67e22;
-      color: white;
-    }
-    .btn-select-mode {
-      background-color: #8e44ad;
-      color: white;
-    }
+
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-import { background-color: var(--success); color: white; }
+    .btn-export { background-color: var(--warning); color: white; }
+    .btn-danger { background-color: var(--danger); color: white; }
+    .btn-secondary { background-color: #e2e8f0; color: var(--text-main); }
+    .btn-select-mode { background-color: var(--purple); color: white; }
     .btn-select-mode.active {
-      background-color: #27ae60;
+      background-color: var(--success);
       animation: pulse 1.5s infinite;
     }
+
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4); }
       70% { box-shadow: 0 0 0 8px rgba(39, 174, 96, 0); }
       100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
     }
-    .btn-random {
-      background-color: #34495e;
+
+    .btn-clear {
+      background: none;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: normal;
+    }
+    .btn-clear:hover {
+      background-color: var(--danger);
       color: white;
     }
-    .btn-copy {
-      background-color: #2980b9;
-      color: white;
-    }
-    
-    /* 工具列：匯入與匯出 */
+
     .tools-section {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
+
     .tool-box {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 16px;
-      background-color: #f8fafc;
+      padding: 10px 14px;
+      background-color: var(--bg-gray);
       border: 1px dashed #cbd5e1;
       border-radius: 8px;
       font-size: 14px;
     }
+
     .tool-box select {
       padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid #ccd0d5;
+      border: 1px solid var(--border-color);
       font-size: 14px;
       outline: none;
       background-color: #fff;
@@ -134,20 +198,22 @@
     /* 三欄排版配置 */
     .main-board {
       display: grid;
-      grid-template-columns: 1fr 1fr 1.1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 1fr 1.15fr;
+      gap: 16px;
     }
+
     .column {
-      background-color: #f9fafb;
+      background-color: var(--bg-gray);
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: 16px;
-      min-height: 480px;
+      min-height: 520px;
       display: flex;
       flex-direction: column;
     }
+
     .column-header {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: bold;
       padding-bottom: 12px;
       margin-bottom: 12px;
@@ -158,37 +224,11 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+
     .header-actions {
       display: flex;
       align-items: center;
       gap: 6px;
-    }
-    .btn-clear {
-      background: none;
-      border: 1px solid #e74c3c;
-      color: #e74c3c;
-      font-size: 12px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: normal;
-      transition: all 0.2s;
-    }
-    .btn-clear:hover {
-      background-color: #e74c3c;
-      color: white;
-    }
-    .column.used .column-header {
-      color: #7f8c8d;
-      border-color: #bdc3c7;
-    }
-    .column.unused .column-header {
-      color: #27ae60;
-      border-color: #2ecc71;
-    }
-    .column.selected-pane .column-header {
-      color: #2c3e50;
-      border-color: #3498db;
     }
 
     .word-list {
@@ -197,17 +237,18 @@
       gap: 10px;
       align-content: flex-start;
       flex: 1;
-      max-height: 520px;
+      max-height: 500px;
       overflow-y: auto;
       padding-right: 4px;
     }
+
     .word-chip {
       padding: 8px 14px;
       border-radius: 20px;
       font-size: 15px;
       cursor: pointer;
       user-select: none;
-      transition: transform 0.1s, box-shadow 0.1s, border 0.15s;
+      transition: transform 0.1s, box-shadow 0.1s;
     }
     .word-chip:hover {
       transform: translateY(-2px);
@@ -223,23 +264,58 @@
       color: #7f8c8d;
       border: 1px solid #d5dbdb;
     }
-    /* 圈選狀態樣式 */
     .unused-chip.selected-highlight {
-      background-color: #8e44ad !important;
+      background-color: var(--purple) !important;
       color: #ffffff !important;
       border-color: #6c3483 !important;
       box-shadow: 0 0 0 2px #d2b4de !important;
       font-weight: bold;
     }
-    .empty-hint {
-      color: #95a5a6;
-      font-size: 14px;
-      width: 100%;
-      text-align: center;
-      margin-top: 40px;
+
+    .sentence-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
-    /* 右側表格與控制項 */
+    .sentence-item {
+      padding: 10px 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .sentence-item:hover {
+      background: #ebf5fb;
+      border-color: #aed6f1;
+    }
+    .sentence-item.selectable {
+      cursor: default;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .sentence-item.selectable input {
+      margin-top: 4px;
+      cursor: pointer;
+    }
+    .sentence-item.search-hidden {
+      display: none !important;
+    }
+    .highlight {
+      background-color: #fef08a;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
     .random-bar {
       display: flex;
       align-items: center;
@@ -258,6 +334,7 @@
       text-align: center;
       font-size: 14px;
     }
+
     .table-container {
       flex: 1;
       overflow-y: auto;
@@ -277,17 +354,14 @@
       text-align: left;
     }
     table.selected-table th {
-      background-color: #f8fafc;
-      color: #64748b;
+      background-color: var(--bg-gray);
+      color: var(--text-muted);
       position: sticky;
       top: 0;
       font-weight: 600;
     }
-    table.selected-table tr:hover {
-      background-color: #f8fafc;
-    }
 
-    /* 彈出視窗樣式 */
+    /* 彈窗樣式 */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -305,170 +379,249 @@
       padding: 24px;
       border-radius: 12px;
       width: 90%;
-      max-width: 360px;
+      max-width: 400px;
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .modal h3 {
-      margin-bottom: 12px;
+    .modal h3, .modal h4 {
       font-size: 18px;
-      color: #2c3e50;
+      color: var(--dark);
     }
-    .modal p {
-      margin-bottom: 20px;
-      color: #666;
+    .modal-preview {
+      background: var(--bg-gray);
+      padding: 10px 12px;
+      border-radius: 8px;
       font-size: 14px;
+      color: var(--text-main);
+      max-height: 100px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      word-break: break-word;
+      text-align: left;
     }
     .modal-actions {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
-    .modal-btn {
+    .modal-actions .btn {
+      width: 100%;
       padding: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .btn-move {
-      background-color: #3498db;
-      color: #fff;
-    }
-    .btn-delete {
-      background-color: #e74c3c;
-      color: #fff;
-    }
-    .btn-cancel {
-      background-color: #ecf0f1;
-      color: #7f8c8d;
-    }
-
-    @media (max-width: 1024px) {
-      .main-board {
-        grid-template-columns: 1fr;
-      }
-      .tools-section {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>詞庫管理系統</h1>
-  <div class="status-bar" id="syncStatus">雲端狀態：連線中...</div>
-  
-  <!-- 單筆輸入 -->
-  <div class="input-section">
-    <input type="text" id="wordInput" placeholder="請輸入單一詞彙後按 Enter 或新增..." autocomplete="off">
-    <button class="btn btn-primary" id="addBtn">新增</button>
+  <!-- 頂部切換列 -->
+  <div class="header-bar">
+    <div class="header-left">
+      <h1 id="pageMainHeading">每日一字：詞庫管理系統</h1>
+      <button class="nav-btn" id="toggleViewBtn">切換至 每日一句 ➔</button>
+    </div>
+    <div class="status-bar" id="syncStatus">雲端狀態：連線中...</div>
   </div>
 
-  <!-- 工具區：匯入與匯出 -->
-  <div class="tools-section">
-    <!-- Excel 批次匯入 -->
-    <div class="tool-box">
-      <select id="importTarget">
-        <option value="unused">匯入至「未使用」</option>
-        <option value="used">匯入至「已使用」</option>
-      </select>
-      <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-      <button class="btn btn-import" id="triggerImportBtn">匯入 Excel</button>
+  <!-- ============================== -->
+  <!-- 視圖 1：每日一字詞庫 (主頁) -->
+  <!-- ============================== -->
+  <div id="vocabView" class="tab-view active">
+    <!-- 單筆輸入 -->
+    <div class="input-section">
+      <input type="text" id="wordInput" placeholder="請輸入單一詞彙後按 Enter 或新增..." autocomplete="off">
+      <button class="btn btn-primary" id="addWordBtn" style="padding: 12px 20px;">新增詞彙</button>
     </div>
 
-    <!-- Excel 批次匯出 -->
-    <div class="tool-box">
-      <select id="exportTarget">
-        <option value="unused">匯出「未使用」</option>
-        <option value="used">匯出「已使用」</option>
-        <option value="all">匯出「全部 (分頁籤)」</option>
-      </select>
-      <button class="btn btn-export" id="exportBtn">匯出 Excel</button>
+    <!-- 工具區：匯入與匯出 -->
+    <div class="tools-section">
+      <div class="tool-box">
+        <select id="importWordTarget">
+          <option value="unused">匯入至「未使用」</option>
+          <option value="used">匯入至「已使用」</option>
+        </select>
+        <input type="file" id="wordExcelInput" accept=".xlsx, .xls" style="display: none;">
+        <button class="btn btn-import" id="triggerWordImportBtn">匯入 Excel</button>
+      </div>
+      <div class="tool-box">
+        <select id="exportWordTarget">
+          <option value="unused">匯出「未使用」</option>
+          <option value="used">匯出「已使用」</option>
+          <option value="all">匯出「全部 (分頁籤)」</option>
+        </select>
+        <button class="btn btn-export" id="exportWordBtn">匯出 Excel</button>
+      </div>
+    </div>
+
+    <!-- 三欄主板 -->
+    <div class="main-board">
+      <!-- 1. 已使用 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--text-muted);">
+          <span>已使用</span>
+          <div class="header-actions">
+            <span id="usedWordCount" style="font-size: 13px; color: var(--text-muted);">0 筆</span>
+            <button class="btn-clear" id="clearUsedWordBtn">清空</button>
+          </div>
+        </div>
+        <div class="word-list" id="usedWordList"></div>
+      </div>
+
+      <!-- 2. 未使用 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--success);">
+          <span>未使用</span>
+          <div class="header-actions">
+            <span id="unusedWordCount" style="font-size: 13px; color: var(--success);">0 筆</span>
+            <button class="btn btn-select-mode" id="wordSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">選擇</button>
+            <button class="btn-clear" id="clearUnusedWordBtn">清空</button>
+          </div>
+        </div>
+        <div class="word-list" id="unusedWordList"></div>
+      </div>
+
+      <!-- 3. 已選取詞彙表格 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--dark);">
+          <span>已選取詞彙</span>
+          <div class="header-actions">
+            <span id="selectedWordCount" style="font-size: 13px; color: var(--primary);">0 筆</span>
+            <button class="btn btn-primary" id="copyAllWordsBtn" style="padding: 3px 8px; font-size: 12px;">一鍵複製</button>
+            <button class="btn-clear" id="clearSelectedWordBtn">清空</button>
+          </div>
+        </div>
+
+        <div class="random-bar">
+          <span>隨機選取：</span>
+          <input type="number" id="randomNumInput" min="1" max="20" value="5">
+          <span>個詞</span>
+          <button class="btn btn-secondary" id="randomPickBtn" style="padding: 4px 10px; font-size: 12px;">抽詞</button>
+        </div>
+
+        <div class="table-container">
+          <table class="selected-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">編號</th>
+                <th>詞彙名稱</th>
+                <th style="width: 60px; text-align: center;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="selectedWordTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="main-board">
-    <!-- 左：已使用 -->
-    <div class="column used">
-      <div class="column-header">
-        <span>已使用</span>
-        <div class="header-actions">
-          <span id="usedCount" style="font-size: 14px; color: #7f8c8d;">0 筆</span>
-          <button class="btn-clear" id="clearUsedBtn">清空</button>
-        </div>
-      </div>
-      <div class="word-list" id="usedList"></div>
+  <!-- ============================== -->
+  <!-- 視圖 2：每日一句句庫 (分頁) -->
+  <!-- ============================== -->
+  <div id="sentenceView" class="tab-view">
+    <!-- 單筆輸入 -->
+    <div class="input-section">
+      <input type="text" id="sentenceInput" placeholder="請輸入句子後按 Enter 或新增..." autocomplete="off">
+      <button class="btn btn-primary" id="addSentenceBtn" style="padding: 12px 20px;">新增句子</button>
     </div>
 
-    <!-- 中：未使用 -->
-    <div class="column unused">
-      <div class="column-header">
-        <span>未使用</span>
-        <div class="header-actions">
-          <span id="unusedCount" style="font-size: 14px; color: #27ae60;">0 筆</span>
-          <button class="btn btn-select-mode" id="selectModeBtn" style="padding: 4px 10px; font-size: 12px;">選擇</button>
-          <button class="btn-clear" id="clearUnusedBtn">清空</button>
-        </div>
+    <!-- 工具區：搜尋與匯入匯出 -->
+    <div class="tools-section">
+      <div class="tool-box">
+        <input type="text" id="sentenceSearchInput" placeholder="全域關鍵字搜尋句子..." style="width: 100%; border: none; outline: none; background: transparent;">
       </div>
-      <div class="word-list" id="unusedList"></div>
+      <div class="tool-box" style="justify-content: flex-end;">
+        <input type="file" id="sentenceExcelInput" accept=".xlsx, .xls" style="display: none;">
+        <button class="btn btn-import" id="triggerSentenceImportBtn">匯入 Excel</button>
+        <button class="btn btn-export" id="triggerSentenceExportBtn">匯出 Excel</button>
+      </div>
     </div>
 
-    <!-- 右：已選取詞彙表格區 -->
-    <div class="column selected-pane">
-      <div class="column-header">
-        <span>已選取詞彙 (右側表格)</span>
-        <div class="header-actions">
-          <span id="selectedCount" style="font-size: 14px; color: #3498db;">0 筆</span>
-          <button class="btn btn-copy" id="copyAllBtn" style="padding: 4px 10px; font-size: 12px;">一鍵複製</button>
-          <button class="btn-clear" id="clearSelectedBtn">清空</button>
+    <!-- 三欄主板 -->
+    <div class="main-board">
+      <!-- 1. 已使用句庫 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--text-muted);">
+          <span>已使用句庫</span>
+          <div class="header-actions">
+            <span id="usedSentenceCount" style="font-size: 13px; color: var(--text-muted);">0 筆</span>
+            <button class="btn-clear" id="clearUsedSentenceBtn">清空已使用</button>
+          </div>
         </div>
+        <div class="sentence-list" id="usedSentenceList"></div>
       </div>
 
-      <!-- 隨機抽選列 -->
-      <div class="random-bar">
-        <span>隨機選取：</span>
-        <input type="number" id="randomNumInput" min="1" max="20" value="5">
-        <span>個詞</span>
-        <button class="btn btn-random" id="randomPickBtn" style="padding: 4px 10px; font-size: 12px;">抽詞</button>
+      <!-- 2. 未使用句庫 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--success);">
+          <span>未使用句庫</span>
+          <div class="header-actions">
+            <span id="unusedSentenceCount" style="font-size: 13px; color: var(--success);">0 筆</span>
+            <button class="btn btn-secondary" id="sentenceSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">選擇句子</button>
+            <button class="btn btn-import" id="sentenceFinishSelectBtn" style="display: none; padding: 3px 8px; font-size: 12px;">點選完畢</button>
+            <button class="btn-clear" id="clearUnusedSentenceBtn">清空未使用</button>
+          </div>
+        </div>
+        <div class="sentence-list" id="unusedSentenceList"></div>
       </div>
 
-      <!-- 表格清單 -->
-      <div class="table-container">
-        <table class="selected-table">
-          <thead>
-            <tr>
-              <th style="width: 50px;">編號</th>
-              <th>詞彙名稱</th>
-              <th style="width: 60px; text-align: center;">操作</th>
-            </tr>
-          </thead>
-          <tbody id="selectedTableBody">
-            <!-- 動態生成 -->
-          </tbody>
-        </table>
+      <!-- 3. 已選取句子 -->
+      <div class="column">
+        <div class="column-header" style="color: var(--dark);">
+          <span>已選取句子</span>
+          <div class="header-actions">
+            <span id="selectedSentenceCount" style="font-size: 13px; color: var(--primary);">0 筆</span>
+            <button class="btn btn-primary" id="copySelectedSentenceBtn" style="padding: 3px 8px; font-size: 12px;">一鍵複製</button>
+            <button class="btn-clear" id="clearSelectedSentenceBtn">清空選取</button>
+          </div>
+        </div>
+        <div class="sentence-list" id="selectedSentenceList"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 操作選擇彈出視窗 -->
+<!-- 通用操作彈窗 (詞彙 / 句子) -->
 <div class="modal-overlay" id="actionModal">
   <div class="modal">
-    <h3 id="modalTitle">詞彙操作</h3>
-    <p>請選擇您想對此詞彙執行的動作：</p>
+    <h3 id="modalTitle">操作</h3>
+    <div class="modal-preview" id="modalPreviewText"></div>
     <div class="modal-actions">
-      <button class="modal-btn btn-move" id="modalMoveBtn">移動</button>
-      <button class="modal-btn btn-delete" id="modalDeleteBtn">刪除詞彙</button>
-      <button class="modal-btn btn-cancel" id="modalCancelBtn">取消</button>
+      <button class="btn btn-primary" id="modalMoveBtn">移動</button>
+      <button class="btn btn-danger" id="modalDeleteBtn">刪除</button>
+      <button class="btn btn-secondary" id="modalCancelBtn">取消</button>
     </div>
   </div>
 </div>
 
-<!-- Firebase SDK (v9+ ESM) 模組化載入 -->
+<!-- 句子匯出彈窗 -->
+<div class="modal-overlay" id="sentenceExportModal">
+  <div class="modal">
+    <h4>選擇句庫匯出內容</h4>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="exportSentenceAllBtn">匯出全部（已使用 + 未使用）</button>
+      <button class="btn btn-secondary" id="exportSentenceUsedBtn">僅匯出「已使用句庫」</button>
+      <button class="btn btn-secondary" id="exportSentenceUnusedBtn">僅匯出「未使用句庫」</button>
+      <button class="btn btn-danger" id="closeSentenceExportModalBtn">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 句子匯入目標彈窗 -->
+<div class="modal-overlay" id="sentenceImportModal">
+  <div class="modal">
+    <h4>選擇句庫匯入目標</h4>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="importSentenceToUnusedBtn">匯入至「未使用句庫」</button>
+      <button class="btn btn-secondary" id="importSentenceToUsedBtn">匯入至「已使用句庫」</button>
+      <button class="btn btn-secondary" id="importSentenceAutoBtn">自動判斷（按原欄位對應）</button>
+      <button class="btn btn-danger" id="cancelSentenceImportBtn">取消匯入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (v10+ ESM) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { 
@@ -479,70 +632,83 @@
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ==========================================
-  // 【請在此填入您的 Firebase 設定資料】
+  // 【Firebase 設定資料】
   // ==========================================
   const firebaseConfig = {
-  apiKey: "AIzaSyAOnHmC3JgInnwPeY1L6jMzLnuJQ9EJmR0",
-  authDomain: "gimnacio-de-chino.firebaseapp.com",
-  projectId: "gimnacio-de-chino",
-  storageBucket: "gimnacio-de-chino.firebasestorage.app",
-  messagingSenderId: "414122979474",
-  appId: "1:414122979474:web:f5a622f8482248deecb64b",
-  measurementId: "G-N6YQ9QXLTS"
+    apiKey: "AIzaSyAOnHmC3JgInnwPeY1L6jMzLnuJQ9EJmR0",
+    authDomain: "gimnacio-de-chino.firebaseapp.com",
+    projectId: "gimnacio-de-chino",
+    storageBucket: "gimnacio-de-chino.firebasestorage.app",
+    messagingSenderId: "414122979474",
+    appId: "1:414122979474:web:f5a622f8482248deecb64b",
+    measurementId: "G-N6YQ9QXLTS"
   };
 
-  // 初始化 Firebase & Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Firestore 存放路徑：vocabulary (集合) / main (文件)
+  // Firestore 文件參照：每日一字 (vocabulary/main) 與 每日一句 (sentences/main)
   const vocabDocRef = doc(db, "vocabulary", "main");
+  const sentenceDocRef = doc(db, "sentences", "main");
 
-  // 應用程式狀態
+  // ------------------------------------------
+  // 狀態變數
+  // ------------------------------------------
+  let currentTab = 'vocab'; // 'vocab' | 'sentence'
+
+  // 詞庫狀態
   let unusedWords = [];
   let usedWords = [];
   let selectedWords = [];
-  let isSelecting = false;
-  let currentAction = { word: '', type: '', index: -1 };
+  let isWordSelecting = false;
 
-  // DOM 元素
+  // 句庫狀態
+  let unusedSentences = [];
+  let usedSentences = [];
+  let selectedSentences = [];
+  let isSentenceSelecting = false;
+  let sentenceSearchTerm = '';
+  let pendingSentenceImportData = null;
+
+  // 操作彈窗共用指標
+  let activeModalAction = { scope: '', item: '', type: '', index: -1 };
+
+  // 繁體中文筆畫排序
+  function sortByStroke(arr) {
+    return arr.sort((a, b) => a.localeCompare(b, 'zh-Hant-u-co-stroke', { numeric: true }));
+  }
+
+  // 相似度計算（編輯距離）
+  function calculateSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    const s1 = str1.trim().toLowerCase();
+    const s2 = str2.trim().toLowerCase();
+    if (s1 === s2) return 1.0;
+
+    const len1 = s1.length;
+    const len2 = s2.length;
+    const dp = Array.from({ length: len1 + 1 }, () => Array(len2 + 1).fill(0));
+
+    for (let i = 0; i <= len1; i++) dp[i][0] = i;
+    for (let j = 0; j <= len2; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+      }
+    }
+    return 1 - (dp[len1][len2] / Math.max(len1, len2));
+  }
+
+  // ------------------------------------------
+  // Firebase 雲端同步
+  // ------------------------------------------
   const syncStatus = document.getElementById('syncStatus');
-  const wordInput = document.getElementById('wordInput');
-  const addBtn = document.getElementById('addBtn');
-  const unusedList = document.getElementById('unusedList');
-  const usedList = document.getElementById('usedList');
-  const unusedCount = document.getElementById('unusedCount');
-  const usedCount = document.getElementById('usedCount');
 
-  const selectModeBtn = document.getElementById('selectModeBtn');
-  const clearUsedBtn = document.getElementById('clearUsedBtn');
-  const clearUnusedBtn = document.getElementById('clearUnusedBtn');
-
-  const selectedTableBody = document.getElementById('selectedTableBody');
-  const selectedCount = document.getElementById('selectedCount');
-  const randomNumInput = document.getElementById('randomNumInput');
-  const randomPickBtn = document.getElementById('randomPickBtn');
-  const copyAllBtn = document.getElementById('copyAllBtn');
-  const clearSelectedBtn = document.getElementById('clearSelectedBtn');
-
-  const actionModal = document.getElementById('actionModal');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalMoveBtn = document.getElementById('modalMoveBtn');
-  const modalDeleteBtn = document.getElementById('modalDeleteBtn');
-  const modalCancelBtn = document.getElementById('modalCancelBtn');
-
-  const excelFileInput = document.getElementById('excelFileInput');
-  const triggerImportBtn = document.getElementById('triggerImportBtn');
-  const importTarget = document.getElementById('importTarget');
-  const exportTarget = document.getElementById('exportTarget');
-  const exportBtn = document.getElementById('exportBtn');
-
-  // ==========================================
-  // Firebase 雲端同步與監聽
-  // ==========================================
-  async function saveToCloud() {
+  async function saveVocabCloud() {
     try {
-      syncStatus.textContent = "雲端狀態：正在儲存...";
+      syncStatus.textContent = "雲端狀態：詞庫儲存中...";
       await setDoc(vocabDocRef, {
         unused: unusedWords,
         used: usedWords,
@@ -550,372 +716,642 @@
       });
       syncStatus.textContent = "雲端狀態：已同步";
     } catch (err) {
-      console.error("Firebase 寫入失敗:", err);
-      syncStatus.textContent = "雲端狀態：同步失敗 (請檢查權限或連線)";
+      console.error("詞庫儲存失敗:", err);
+      syncStatus.textContent = "雲端狀態：儲存失敗";
     }
   }
 
-  // 即時監聽 Firestore 資料變更
+  async function saveSentenceCloud() {
+    try {
+      syncStatus.textContent = "雲端狀態：句庫儲存中...";
+      await setDoc(sentenceDocRef, {
+        unused: unusedSentences,
+        used: usedSentences,
+        updatedAt: new Date()
+      });
+      syncStatus.textContent = "雲端狀態：已同步";
+    } catch (err) {
+      console.error("句庫儲存失敗:", err);
+      syncStatus.textContent = "雲端狀態：儲存失敗";
+    }
+  }
+
+  // 監聽詞庫
   onSnapshot(vocabDocRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       unusedWords = data.unused || [];
       usedWords = data.used || [];
-      // 過濾掉可能已被其他人刪除的圈選項目
       selectedWords = selectedWords.filter(w => unusedWords.includes(w));
-      render();
-      syncStatus.textContent = "雲端狀態：已連線 (即時同步中)";
+      renderVocab();
+      syncStatus.textContent = "雲端狀態：已連線 (即時同步)";
     } else {
-      // 首次初始化空資料
-      saveToCloud();
+      saveVocabCloud();
     }
-  }, (err) => {
-    console.error("Firebase 監聽失敗:", err);
-    syncStatus.textContent = "雲端狀態：連線失敗 (請確認 Firebase Config 設定)";
   });
 
-  // ==========================================
-  // 核心功能邏輯
-  // ==========================================
+  // 監聽句庫
+  onSnapshot(sentenceDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      unusedSentences = data.unused || [];
+      usedSentences = data.used || [];
+      sortByStroke(unusedSentences);
+      sortByStroke(usedSentences);
+      renderSentence();
+      syncStatus.textContent = "雲端狀態：已連線 (即時同步)";
+    } else {
+      saveSentenceCloud();
+    }
+  });
 
-  // 單筆新增
+  // ------------------------------------------
+  // 分頁切換 (每日一字 <-> 每日一句)
+  // ------------------------------------------
+  const toggleViewBtn = document.getElementById('toggleViewBtn');
+  const pageMainHeading = document.getElementById('pageMainHeading');
+  const vocabView = document.getElementById('vocabView');
+  const sentenceView = document.getElementById('sentenceView');
+
+  toggleViewBtn.addEventListener('click', () => {
+    if (currentTab === 'vocab') {
+      currentTab = 'sentence';
+      pageMainHeading.textContent = '每日一句：句庫管理系統';
+      toggleViewBtn.textContent = '切換至 每日一字 ➔';
+      vocabView.classList.remove('active');
+      sentenceView.classList.add('active');
+      renderSentence();
+    } else {
+      currentTab = 'vocab';
+      pageMainHeading.textContent = '每日一字：詞庫管理系統';
+      toggleViewBtn.textContent = '切換至 每日一句 ➔';
+      sentenceView.classList.remove('active');
+      vocabView.classList.add('active');
+      renderVocab();
+    }
+  });
+
+  // ------------------------------------------
+  // 【每日一字】邏輯
+  // ------------------------------------------
+  const wordInput = document.getElementById('wordInput');
+  const addWordBtn = document.getElementById('addWordBtn');
+  const usedWordList = document.getElementById('usedWordList');
+  const unusedWordList = document.getElementById('unusedWordList');
+  const usedWordCount = document.getElementById('usedWordCount');
+  const unusedWordCount = document.getElementById('unusedWordCount');
+  const selectedWordTableBody = document.getElementById('selectedWordTableBody');
+  const selectedWordCount = document.getElementById('selectedWordCount');
+  const wordSelectModeBtn = document.getElementById('wordSelectModeBtn');
+  const clearUsedWordBtn = document.getElementById('clearUsedWordBtn');
+  const clearUnusedWordBtn = document.getElementById('clearUnusedWordBtn');
+  const clearSelectedWordBtn = document.getElementById('clearSelectedWordBtn');
+  const copyAllWordsBtn = document.getElementById('copyAllWordsBtn');
+  const randomPickBtn = document.getElementById('randomPickBtn');
+  const randomNumInput = document.getElementById('randomNumInput');
+
   function addWord() {
     const text = wordInput.value.trim();
     if (!text) return;
-
     if (unusedWords.includes(text) || usedWords.includes(text)) {
-      const location = unusedWords.includes(text) ? '「未使用」' : '「已使用」';
-      alert(`詞庫中已經有相同的字：「${text}」（位於 ${location}）！`);
-      wordInput.focus();
+      const loc = unusedWords.includes(text) ? '「未使用」' : '「已使用」';
+      alert(`詞庫中已經有相同的字：「${text}」（位於 ${loc}）！`);
       return;
     }
-
     unusedWords.push(text);
     wordInput.value = '';
-    wordInput.focus();
-    saveToCloud();
-    render();
+    saveVocabCloud();
+    renderVocab();
   }
 
-  // 切換「選擇模式」
-  selectModeBtn.addEventListener('click', () => {
-    isSelecting = !isSelecting;
-    if (isSelecting) {
-      selectModeBtn.textContent = '確認完成選擇';
-      selectModeBtn.classList.add('active');
+  addWordBtn.addEventListener('click', addWord);
+  wordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addWord(); });
+
+  wordSelectModeBtn.addEventListener('click', () => {
+    isWordSelecting = !isWordSelecting;
+    if (isWordSelecting) {
+      wordSelectModeBtn.textContent = '完成選擇';
+      wordSelectModeBtn.classList.add('active');
     } else {
-      selectModeBtn.textContent = '選擇';
-      selectModeBtn.classList.remove('active');
+      wordSelectModeBtn.textContent = '選擇';
+      wordSelectModeBtn.classList.remove('active');
     }
   });
 
-  // 點擊「未使用」詞彙
-  function handleUnusedClick(word, index) {
-    if (isSelecting) {
+  function handleWordClick(word, type, index) {
+    if (type === 'unused' && isWordSelecting) {
       if (selectedWords.includes(word)) {
         selectedWords = selectedWords.filter(w => w !== word);
       } else {
         selectedWords.push(word);
       }
-      render();
+      renderVocab();
     } else {
-      openActionModal(word, 'unused', index);
+      openActionModal('word', word, type, index);
     }
   }
 
-  // 隨機抽選 1~20 個詞
   randomPickBtn.addEventListener('click', () => {
     let count = parseInt(randomNumInput.value, 10);
     if (isNaN(count) || count < 1) count = 1;
     if (count > 20) count = 20;
     randomNumInput.value = count;
-
-    if (unusedWords.length === 0) {
-      alert('「未使用」詞庫中沒有詞彙可抽取！');
-      return;
-    }
-
+    if (unusedWords.length === 0) return alert('「未使用」詞庫中沒有詞彙可抽取！');
     const shuffled = [...unusedWords].sort(() => 0.5 - Math.random());
     selectedWords = shuffled.slice(0, count);
-    render();
+    renderVocab();
   });
 
-  // 一鍵複製
-  copyAllBtn.addEventListener('click', () => {
-    if (selectedWords.length === 0) {
-      alert('目前沒有選取任何詞彙可複製！');
-      return;
-    }
-    const textToCopy = selectedWords.join('\n');
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      alert(`已成功複製 ${selectedWords.length} 個詞彙到剪貼簿！`);
-    }).catch(() => {
-      alert('複製失敗，請手動選取表格複製。');
+  copyAllWordsBtn.addEventListener('click', () => {
+    if (selectedWords.length === 0) return alert('目前沒有選取任何詞彙！');
+    navigator.clipboard.writeText(selectedWords.join('
+')).then(() => {
+      alert(`已成功複製 ${selectedWords.length} 個詞彙！`);
     });
   });
 
-  // 清空右側選取
-  clearSelectedBtn.addEventListener('click', () => {
-    selectedWords = [];
-    render();
-  });
+  clearSelectedWordBtn.addEventListener('click', () => { selectedWords = []; renderVocab(); });
 
-  // 清空「已使用」
-  clearUsedBtn.addEventListener('click', () => {
+  clearUsedWordBtn.addEventListener('click', () => {
     if (usedWords.length === 0) return alert('「已使用」詞庫目前是空的！');
-    if (confirm(`確定要清空【已使用】區塊的所有詞彙嗎？（共 ${usedWords.length} 筆）`)) {
+    if (confirm(`確定要清空【已使用】的所有詞彙嗎？（共 ${usedWords.length} 筆）`)) {
       usedWords = [];
-      saveToCloud();
-      render();
+      saveVocabCloud();
+      renderVocab();
     }
   });
 
-  // 清空「未使用」
-  clearUnusedBtn.addEventListener('click', () => {
+  clearUnusedWordBtn.addEventListener('click', () => {
     if (unusedWords.length === 0) return alert('「未使用」詞庫目前是空的！');
-    if (confirm(`確定要清空【未使用】區塊的所有詞彙嗎？（共 ${unusedWords.length} 筆）`)) {
+    if (confirm(`確定要清空【未使用】的所有詞彙嗎？（共 ${unusedWords.length} 筆）`)) {
       unusedWords = [];
       selectedWords = [];
-      saveToCloud();
-      render();
+      saveVocabCloud();
+      renderVocab();
     }
   });
 
-  // Excel 匯入
-  triggerImportBtn.addEventListener('click', () => {
-    excelFileInput.click();
-  });
+  // 詞庫 Excel 匯入/匯出
+  const triggerWordImportBtn = document.getElementById('triggerWordImportBtn');
+  const wordExcelInput = document.getElementById('wordExcelInput');
+  const importWordTarget = document.getElementById('importWordTarget');
+  const exportWordBtn = document.getElementById('exportWordBtn');
+  const exportWordTarget = document.getElementById('exportWordTarget');
 
-  excelFileInput.addEventListener('change', function(e) {
+  triggerWordImportBtn.addEventListener('click', () => wordExcelInput.click());
+  wordExcelInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = function(evt) {
+    reader.onload = (evt) => {
       try {
         const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        let extractedWords = [];
-
-        workbook.SheetNames.forEach(sheetName => {
-          const sheet = workbook.Sheets[sheetName];
+        const wb = XLSX.read(data, { type: 'array' });
+        let extracted = [];
+        wb.SheetNames.forEach(name => {
+          const sheet = wb.Sheets[name];
           const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
-          
           for (let R = range.s.r; R <= range.e.r; ++R) {
             for (let C = range.s.c; C <= range.e.c; ++C) {
-              const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-              const cell = sheet[cellAddress];
-              if (cell && cell.v !== undefined && cell.v !== null) {
+              const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
+              if (cell && cell.v !== undefined) {
                 const val = String(cell.v).trim();
-                if (val.length > 0) extractedWords.push(val);
+                if (val) extracted.push(val);
               }
             }
           }
         });
-
-        if (extractedWords.length === 0) {
-          alert('Excel 檔案內沒有讀取到任何文字！');
-          return;
-        }
-
-        const target = importTarget.value;
-        let addedCount = 0;
-        let duplicateCount = 0;
-
-        extractedWords.forEach(word => {
-          const isDuplicate = unusedWords.includes(word) || usedWords.includes(word);
-          if (isDuplicate) {
-            duplicateCount++;
-          } else {
-            if (target === 'unused') {
-              unusedWords.push(word);
-            } else {
-              usedWords.push(word);
-            }
-            addedCount++;
+        const target = importWordTarget.value;
+        let added = 0;
+        extracted.forEach(w => {
+          if (!unusedWords.includes(w) && !usedWords.includes(w)) {
+            if (target === 'unused') unusedWords.push(w);
+            else usedWords.push(w);
+            added++;
           }
         });
-
-        saveToCloud();
-        render();
-
-        const targetName = target === 'unused' ? '未使用' : '已使用';
-        alert(`匯入完成！\n成功匯入至【${targetName}】：${addedCount} 筆\n略過重複字詞：${duplicateCount} 筆`);
+        saveVocabCloud();
+        renderVocab();
+        alert(`成功匯入 ${added} 筆詞彙！`);
       } catch (err) {
-        console.error(err);
-        alert('解析 Excel 檔案失敗，請確認檔案格式是否正確。');
+        alert('匯入解析失敗。');
       } finally {
-        excelFileInput.value = '';
+        wordExcelInput.value = '';
       }
     };
     reader.readAsArrayBuffer(file);
   });
 
-  // Excel 匯出
-  exportBtn.addEventListener('click', function() {
-    const target = exportTarget.value;
+  exportWordBtn.addEventListener('click', () => {
+    const target = exportWordTarget.value;
     const wb = XLSX.utils.book_new();
     const dateStr = new Date().toISOString().slice(0, 10);
-
     if (target === 'unused') {
-      if (unusedWords.length === 0) return alert('「未使用」詞庫中沒有任何資料可匯出！');
-      const data = unusedWords.map(word => [word]);
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, '未使用詞彙');
+      if (unusedWords.length === 0) return alert('「未使用」沒有資料！');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unusedWords.map(w => [w])), '未使用詞彙');
       XLSX.writeFile(wb, `未使用詞庫_${dateStr}.xlsx`);
-
     } else if (target === 'used') {
-      if (usedWords.length === 0) return alert('「已使用」詞庫中沒有任何資料可匯出！');
-      const data = usedWords.map(word => [word]);
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, '已使用詞彙');
+      if (usedWords.length === 0) return alert('「已使用」沒有資料！');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(usedWords.map(w => [w])), '已使用詞彙');
       XLSX.writeFile(wb, `已使用詞庫_${dateStr}.xlsx`);
-
-    } else if (target === 'all') {
-      if (unusedWords.length === 0 && usedWords.length === 0) return alert('目前詞庫沒有任何資料可匯出！');
-      const dataUnused = unusedWords.map(word => [word]);
-      const wsUnused = XLSX.utils.aoa_to_sheet(dataUnused);
-      XLSX.utils.book_append_sheet(wb, wsUnused, '未使用詞彙');
-
-      const dataUsed = usedWords.map(word => [word]);
-      const wsUsed = XLSX.utils.aoa_to_sheet(dataUsed);
-      XLSX.utils.book_append_sheet(wb, wsUsed, '已使用詞彙');
-
+    } else {
+      if (unusedWords.length === 0 && usedWords.length === 0) return alert('詞庫中沒有任何資料！');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unusedWords.map(w => [w])), '未使用詞彙');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(usedWords.map(w => [w])), '已使用詞彙');
       XLSX.writeFile(wb, `完整詞庫_${dateStr}.xlsx`);
     }
   });
 
-  // 操作視窗
-  function openActionModal(word, type, index) {
-    currentAction = { word, type, index };
-    modalTitle.textContent = `詞彙：「${word}」`;
-    
-    if (type === 'unused') {
-      modalMoveBtn.textContent = '移至【已使用】';
-    } else {
-      modalMoveBtn.textContent = '移回【未使用】';
+  function renderVocab() {
+    unusedWordList.innerHTML = '';
+    unusedWordCount.textContent = `${unusedWords.length} 筆`;
+    unusedWords.forEach((word, idx) => {
+      const chip = document.createElement('div');
+      chip.className = `word-chip unused-chip ${selectedWords.includes(word) ? 'selected-highlight' : ''}`;
+      chip.textContent = word;
+      chip.onclick = () => handleWordClick(word, 'unused', idx);
+      unusedWordList.appendChild(chip);
+    });
+
+    usedWordList.innerHTML = '';
+    usedWordCount.textContent = `${usedWords.length} 筆`;
+    usedWords.forEach((word, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'word-chip used-chip';
+      chip.textContent = word;
+      chip.onclick = () => handleWordClick(word, 'used', idx);
+      usedWordList.appendChild(chip);
+    });
+
+    selectedWordTableBody.innerHTML = '';
+    selectedWordCount.textContent = `${selectedWords.length} 筆`;
+    selectedWords.forEach((word, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td><strong>${word}</strong></td>
+        <td style="text-align:center;"><button class="btn-clear" style="padding:2px 6px;">移除</button></td>
+      `;
+      tr.querySelector('button').onclick = () => {
+        selectedWords = selectedWords.filter(w => w !== word);
+        renderVocab();
+      };
+      selectedWordTableBody.appendChild(tr);
+    });
+  }
+
+  // ------------------------------------------
+  // 【每日一句】邏輯
+  // ------------------------------------------
+  const sentenceInput = document.getElementById('sentenceInput');
+  const addSentenceBtn = document.getElementById('addSentenceBtn');
+  const usedSentenceList = document.getElementById('usedSentenceList');
+  const unusedSentenceList = document.getElementById('unusedSentenceList');
+  const usedSentenceCount = document.getElementById('usedSentenceCount');
+  const unusedSentenceCount = document.getElementById('unusedSentenceCount');
+  const selectedSentenceList = document.getElementById('selectedSentenceList');
+  const selectedSentenceCount = document.getElementById('selectedSentenceCount');
+  const sentenceSelectModeBtn = document.getElementById('sentenceSelectModeBtn');
+  const sentenceFinishSelectBtn = document.getElementById('sentenceFinishSelectBtn');
+  const clearUsedSentenceBtn = document.getElementById('clearUsedSentenceBtn');
+  const clearUnusedSentenceBtn = document.getElementById('clearUnusedSentenceBtn');
+  const clearSelectedSentenceBtn = document.getElementById('clearSelectedSentenceBtn');
+  const copySelectedSentenceBtn = document.getElementById('copySelectedSentenceBtn');
+  const sentenceSearchInput = document.getElementById('sentenceSearchInput');
+
+  function addSentence() {
+    const text = sentenceInput.value.trim();
+    if (!text) return;
+
+    const all = [
+      ...usedSentences.map(s => ({ text: s, type: '已使用' })),
+      ...unusedSentences.map(s => ({ text: s, type: '未使用' }))
+    ];
+    let maxSim = 0;
+    let found = null;
+    for (const item of all) {
+      const sim = calculateSimilarity(text, item.text);
+      if (sim >= 0.6 && sim > maxSim) {
+        maxSim = sim;
+        found = item;
+      }
     }
+    if (found) {
+      const confirmAdd = confirm(`【相似提醒】發現相似度達 ${Math.round(maxSim * 100)}% 的句子：
+「${found.text}」（位於：${found.type}）
+
+是否仍要新增此句子到「未使用句庫」？`);
+      if (!confirmAdd) return;
+    }
+
+    unusedSentences.push(text);
+    sortByStroke(unusedSentences);
+    sentenceInput.value = '';
+    saveSentenceCloud();
+    renderSentence();
+  }
+
+  addSentenceBtn.addEventListener('click', addSentence);
+  sentenceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addSentence(); });
+
+  sentenceSearchInput.addEventListener('input', () => {
+    sentenceSearchTerm = sentenceSearchInput.value.trim().toLowerCase();
+    renderSentence();
+  });
+
+  function highlightMatch(text, term) {
+    if (!term) return text;
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+  }
+
+  sentenceSelectModeBtn.addEventListener('click', () => {
+    isSentenceSelecting = !isSentenceSelecting;
+    if (isSentenceSelecting) {
+      sentenceSelectModeBtn.textContent = '取消選擇';
+      sentenceSelectModeBtn.classList.replace('btn-secondary', 'btn-danger');
+      sentenceFinishSelectBtn.style.display = 'inline-block';
+    } else {
+      sentenceSelectModeBtn.textContent = '選擇句子';
+      sentenceSelectModeBtn.classList.replace('btn-danger', 'btn-secondary');
+      sentenceFinishSelectBtn.style.display = 'none';
+    }
+    renderSentence();
+  });
+
+  sentenceFinishSelectBtn.addEventListener('click', () => {
+    const checked = document.querySelectorAll('.sentence-checkbox:checked');
+    checked.forEach(cb => {
+      if (!selectedSentences.includes(cb.value)) selectedSentences.push(cb.value);
+    });
+    sentenceSelectModeBtn.click();
+    renderSentence();
+  });
+
+  copySelectedSentenceBtn.addEventListener('click', () => {
+    if (selectedSentences.length === 0) return alert('目前沒有選取任何句子！');
+    navigator.clipboard.writeText(selectedSentences.join('
+')).then(() => {
+      alert(`已成功複製 ${selectedSentences.length} 條句子！`);
+    });
+  });
+
+  clearSelectedSentenceBtn.addEventListener('click', () => { selectedSentences = []; renderSentence(); });
+
+  clearUsedSentenceBtn.addEventListener('click', () => {
+    if (usedSentences.length === 0) return alert('「已使用句庫」目前是空的！');
+    if (confirm(`確定要清除所有【已使用】句子嗎？（共 ${usedSentences.length} 條）`)) {
+      usedSentences = [];
+      saveSentenceCloud();
+      renderSentence();
+    }
+  });
+
+  clearUnusedSentenceBtn.addEventListener('click', () => {
+    if (unusedSentences.length === 0) return alert('「未使用句庫」目前是空的！');
+    if (confirm(`確定要清除所有【未使用】句子嗎？（共 ${unusedSentences.length} 條）`)) {
+      unusedSentences = [];
+      saveSentenceCloud();
+      renderSentence();
+    }
+  });
+
+  // 句庫 Excel 匯入/匯出彈窗
+  const triggerSentenceExportBtn = document.getElementById('triggerSentenceExportBtn');
+  const sentenceExportModal = document.getElementById('sentenceExportModal');
+  const closeSentenceExportModalBtn = document.getElementById('closeSentenceExportModalBtn');
+  const exportSentenceAllBtn = document.getElementById('exportSentenceAllBtn');
+  const exportSentenceUsedBtn = document.getElementById('exportSentenceUsedBtn');
+  const exportSentenceUnusedBtn = document.getElementById('exportSentenceUnusedBtn');
+
+  triggerSentenceExportBtn.addEventListener('click', () => sentenceExportModal.style.display = 'flex');
+  closeSentenceExportModalBtn.addEventListener('click', () => sentenceExportModal.style.display = 'none');
+
+  function exportSentenceExcel(type) {
+    const wb = XLSX.utils.book_new();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    if (type === 'all') {
+      const maxLen = Math.max(usedSentences.length, unusedSentences.length);
+      const data = [['已使用句子庫', '未使用句子庫']];
+      for (let i = 0; i < maxLen; i++) data.push([usedSentences[i] || '', unusedSentences[i] || '']);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), '句子庫');
+      XLSX.writeFile(wb, `句子庫_全部_${dateStr}.xlsx`);
+    } else if (type === 'used') {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['已使用句子庫'], ...usedSentences.map(s => [s])]), '句子庫');
+      XLSX.writeFile(wb, `句子庫_已使用_${dateStr}.xlsx`);
+    } else {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['未使用句子庫'], ...unusedSentences.map(s => [s])]), '句子庫');
+      XLSX.writeFile(wb, `句子庫_未使用_${dateStr}.xlsx`);
+    }
+    sentenceExportModal.style.display = 'none';
+  }
+
+  exportSentenceAllBtn.addEventListener('click', () => exportSentenceExcel('all'));
+  exportSentenceUsedBtn.addEventListener('click', () => exportSentenceExcel('used'));
+  exportSentenceUnusedBtn.addEventListener('click', () => exportSentenceExcel('unused'));
+
+  const triggerSentenceImportBtn = document.getElementById('triggerSentenceImportBtn');
+  const sentenceExcelInput = document.getElementById('sentenceExcelInput');
+  const sentenceImportModal = document.getElementById('sentenceImportModal');
+  const cancelSentenceImportBtn = document.getElementById('cancelSentenceImportBtn');
+  const importSentenceToUnusedBtn = document.getElementById('importSentenceToUnusedBtn');
+  const importSentenceToUsedBtn = document.getElementById('importSentenceToUsedBtn');
+  const importSentenceAutoBtn = document.getElementById('importSentenceAutoBtn');
+
+  triggerSentenceImportBtn.addEventListener('click', () => sentenceExcelInput.click());
+  sentenceExcelInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rows.length === 0) return alert('Excel 沒有資料！');
+        pendingSentenceImportData = rows;
+        sentenceImportModal.style.display = 'flex';
+      } catch (err) {
+        alert('匯入解析失敗。');
+      } finally {
+        sentenceExcelInput.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  cancelSentenceImportBtn.addEventListener('click', () => {
+    sentenceImportModal.style.display = 'none';
+    pendingSentenceImportData = null;
+  });
+
+  function executeSentenceImport(target) {
+    if (!pendingSentenceImportData) return;
+    const rows = pendingSentenceImportData;
+    let startRow = 0;
+    if (rows[0] && (String(rows[0][0]).includes('句子') || String(rows[0][1]).includes('句子'))) startRow = 1;
+
+    let addedCount = 0;
+    if (target === 'auto') {
+      for (let i = startRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        if (row.length === 1 && row[0]) {
+          unusedSentences.push(String(row[0]).trim());
+          addedCount++;
+        } else {
+          if (row[0]) { usedSentences.push(String(row[0]).trim()); addedCount++; }
+          if (row[1]) { unusedSentences.push(String(row[1]).trim()); addedCount++; }
+        }
+      }
+    } else {
+      for (let i = startRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        row.forEach(c => {
+          if (c !== undefined && String(c).trim()) {
+            if (target === 'unused') unusedSentences.push(String(c).trim());
+            else usedSentences.push(String(c).trim());
+            addedCount++;
+          }
+        });
+      }
+    }
+    sortByStroke(unusedSentences);
+    sortByStroke(usedSentences);
+    saveSentenceCloud();
+    renderSentence();
+    sentenceImportModal.style.display = 'none';
+    pendingSentenceImportData = null;
+    alert(`成功匯入 ${addedCount} 條句子！`);
+  }
+
+  importSentenceToUnusedBtn.addEventListener('click', () => executeSentenceImport('unused'));
+  importSentenceToUsedBtn.addEventListener('click', () => executeSentenceImport('used'));
+  importSentenceAutoBtn.addEventListener('click', () => executeSentenceImport('auto'));
+
+  function renderSentence() {
+    usedSentenceList.innerHTML = '';
+    usedSentenceCount.textContent = `${usedSentences.length} 條`;
+    usedSentences.forEach((s, idx) => {
+      const match = !sentenceSearchTerm || s.toLowerCase().includes(sentenceSearchTerm);
+      const div = document.createElement('div');
+      div.className = `sentence-item ${match ? '' : 'search-hidden'}`;
+      div.innerHTML = highlightMatch(s, sentenceSearchTerm);
+      div.onclick = () => openActionModal('sentence', s, 'used', idx);
+      usedSentenceList.appendChild(div);
+    });
+
+    unusedSentenceList.innerHTML = '';
+    unusedSentenceCount.textContent = `${unusedSentences.length} 條`;
+    unusedSentences.forEach((s, idx) => {
+      const match = !sentenceSearchTerm || s.toLowerCase().includes(sentenceSearchTerm);
+      const div = document.createElement('div');
+      div.className = `sentence-item ${isSentenceSelecting ? 'selectable' : ''} ${match ? '' : 'search-hidden'}`;
+      if (isSentenceSelecting) {
+        div.innerHTML = `
+          <input type="checkbox" class="sentence-checkbox" value="${s}" id="sent_${idx}">
+          <label for="sent_${idx}" style="cursor: pointer; flex: 1;">${highlightMatch(s, sentenceSearchTerm)}</label>
+        `;
+      } else {
+        div.innerHTML = highlightMatch(s, sentenceSearchTerm);
+        div.onclick = () => openActionModal('sentence', s, 'unused', idx);
+      }
+      unusedSentenceList.appendChild(div);
+    });
+
+    selectedSentenceList.innerHTML = '';
+    selectedSentenceCount.textContent = `${selectedSentences.length} 條`;
+    selectedSentences.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'sentence-item';
+      div.textContent = s;
+      selectedSentenceList.appendChild(div);
+    });
+  }
+
+  // ------------------------------------------
+  // 通用操作彈窗 (移動 / 刪除)
+  // ------------------------------------------
+  const actionModal = document.getElementById('actionModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalPreviewText = document.getElementById('modalPreviewText');
+  const modalMoveBtn = document.getElementById('modalMoveBtn');
+  const modalDeleteBtn = document.getElementById('modalDeleteBtn');
+  const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+  function openActionModal(scope, item, type, index) {
+    activeModalAction = { scope, item, type, index };
+    modalTitle.textContent = scope === 'word' ? '詞彙操作' : '句子操作';
+    modalPreviewText.textContent = item;
+    const targetName = type === 'unused' ? '【已使用】' : '【未使用】';
+    modalMoveBtn.textContent = `移動到 ${targetName}`;
     actionModal.style.display = 'flex';
   }
 
-  function closeModal() {
+  function closeActionModal() {
     actionModal.style.display = 'none';
-    currentAction = { word: '', type: '', index: -1 };
+    activeModalAction = { scope: '', item: '', type: '', index: -1 };
   }
 
+  modalCancelBtn.addEventListener('click', closeActionModal);
+  actionModal.addEventListener('click', (e) => { if (e.target === actionModal) closeActionModal(); });
+
   modalMoveBtn.addEventListener('click', () => {
-    const { type, index, word } = currentAction;
-    if (type === 'unused') {
-      unusedWords.splice(index, 1);
-      usedWords.push(word);
-      selectedWords = selectedWords.filter(w => w !== word);
-    } else if (type === 'used') {
-      usedWords.splice(index, 1);
-      unusedWords.push(word);
+    const { scope, item, type, index } = activeModalAction;
+    if (scope === 'word') {
+      if (type === 'unused') {
+        unusedWords.splice(index, 1);
+        usedWords.push(item);
+        selectedWords = selectedWords.filter(w => w !== item);
+      } else {
+        usedWords.splice(index, 1);
+        unusedWords.push(item);
+      }
+      saveVocabCloud();
+      renderVocab();
+    } else {
+      if (type === 'unused') {
+        unusedSentences.splice(index, 1);
+        usedSentences.push(item);
+      } else {
+        usedSentences.splice(index, 1);
+        unusedSentences.push(item);
+      }
+      sortByStroke(unusedSentences);
+      sortByStroke(usedSentences);
+      saveSentenceCloud();
+      renderSentence();
     }
-    saveToCloud();
-    render();
-    closeModal();
+    closeActionModal();
   });
 
   modalDeleteBtn.addEventListener('click', () => {
-    const { type, index, word } = currentAction;
-    if (confirm(`確定要完全刪除「${word}」嗎？`)) {
-      if (type === 'unused') {
-        unusedWords.splice(index, 1);
-        selectedWords = selectedWords.filter(w => w !== word);
-      } else if (type === 'used') {
-        usedWords.splice(index, 1);
+    const { scope, item, type, index } = activeModalAction;
+    if (confirm(`確定要刪除「${item}」嗎？`)) {
+      if (scope === 'word') {
+        if (type === 'unused') {
+          unusedWords.splice(index, 1);
+          selectedWords = selectedWords.filter(w => w !== item);
+        } else {
+          usedWords.splice(index, 1);
+        }
+        saveVocabCloud();
+        renderVocab();
+      } else {
+        if (type === 'unused') {
+          unusedSentences.splice(index, 1);
+        } else {
+          usedSentences.splice(index, 1);
+        }
+        saveSentenceCloud();
+        renderSentence();
       }
-      saveToCloud();
-      render();
-      closeModal();
+      closeActionModal();
     }
   });
 
-  modalCancelBtn.addEventListener('click', closeModal);
-  actionModal.addEventListener('click', (e) => {
-    if (e.target === actionModal) closeModal();
-  });
-
-  // 畫面渲染
-  function render() {
-    // 1. 未使用列表
-    unusedList.innerHTML = '';
-    unusedCount.textContent = `${unusedWords.length} 筆`;
-    if (unusedWords.length === 0) {
-      unusedList.innerHTML = '<div class="empty-hint">暫無未使用詞彙</div>';
-    } else {
-      unusedWords.forEach((word, index) => {
-        const chip = document.createElement('div');
-        const isSelected = selectedWords.includes(word);
-        chip.className = `word-chip unused-chip ${isSelected ? 'selected-highlight' : ''}`;
-        chip.textContent = word;
-        chip.title = isSelecting ? '點擊選取/取消選取' : '點擊操作';
-        chip.onclick = () => handleUnusedClick(word, index);
-        unusedList.appendChild(chip);
-      });
-    }
-
-    // 2. 已使用列表
-    usedList.innerHTML = '';
-    usedCount.textContent = `${usedWords.length} 筆`;
-    if (usedWords.length === 0) {
-      usedList.innerHTML = '<div class="empty-hint">暫無已使用詞彙</div>';
-    } else {
-      usedWords.forEach((word, index) => {
-        const chip = document.createElement('div');
-        chip.className = 'word-chip used-chip';
-        chip.textContent = word;
-        chip.onclick = () => openActionModal(word, 'used', index);
-        usedList.appendChild(chip);
-      });
-    }
-
-    // 3. 右側表格
-    selectedTableBody.innerHTML = '';
-    selectedCount.textContent = `${selectedWords.length} 筆`;
-    if (selectedWords.length === 0) {
-      selectedTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #95a5a6; padding: 24px;">尚未選取任何詞彙</td></tr>`;
-    } else {
-      selectedWords.forEach((word, idx) => {
-        const tr = document.createElement('tr');
-        
-        const tdIdx = document.createElement('td');
-        tdIdx.textContent = idx + 1;
-
-        const tdName = document.createElement('td');
-        const strong = document.createElement('strong');
-        strong.textContent = word;
-        tdName.appendChild(strong);
-
-        const tdOpt = document.createElement('td');
-        tdOpt.style.textAlign = 'center';
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-clear';
-        delBtn.style.padding = '2px 6px';
-        delBtn.textContent = '移除';
-        delBtn.onclick = () => {
-          selectedWords = selectedWords.filter(w => w !== word);
-          render();
-        };
-        tdOpt.appendChild(delBtn);
-
-        tr.appendChild(tdIdx);
-        tr.appendChild(tdName);
-        tr.appendChild(tdOpt);
-        selectedTableBody.appendChild(tr);
-      });
-    }
-  }
-
-  addBtn.addEventListener('click', addWord);
-  wordInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addWord();
-  });
-
-  render();
 </script>
-
 </body>
 </html>
