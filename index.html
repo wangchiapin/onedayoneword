@@ -307,6 +307,13 @@
       margin-top: 4px;
       cursor: pointer;
     }
+    .sentence-item.selected-highlight {
+      background-color: var(--purple) !important;
+      color: #ffffff !important;
+      border-color: #6c3483 !important;
+      box-shadow: 0 0 0 2px #d2b4de !important;
+      font-weight: bold;
+    }
     .sentence-item.search-hidden {
       display: none !important;
     }
@@ -565,7 +572,6 @@
           <div class="header-actions">
             <span id="unusedSentenceCount" style="font-size: 13px; color: var(--success);">0 筆</span>
             <button class="btn btn-secondary" id="sentenceSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">選擇句子</button>
-            <button class="btn btn-import" id="sentenceFinishSelectBtn" style="display: none; padding: 3px 8px; font-size: 12px;">移至已選取</button>
             <button class="btn btn-import" id="sentenceMoveToUsedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">移至已使用</button>
             <button class="btn btn-danger" id="sentenceDeleteSelectedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">刪除所選</button>
             <button class="btn-clear" id="clearUnusedSentenceBtn">清空未使用</button>
@@ -1103,7 +1109,6 @@
   const selectedSentenceList = document.getElementById('selectedSentenceList');
   const selectedSentenceCount = document.getElementById('selectedSentenceCount');
   const sentenceSelectModeBtn = document.getElementById('sentenceSelectModeBtn');
-  const sentenceFinishSelectBtn = document.getElementById('sentenceFinishSelectBtn');
   const sentenceMoveToUsedBtn = document.getElementById('sentenceMoveToUsedBtn');
   const sentenceDeleteSelectedBtn = document.getElementById('sentenceDeleteSelectedBtn');
   const sentenceUsedSelectModeBtn = document.getElementById('sentenceUsedSelectModeBtn');
@@ -1170,55 +1175,57 @@
   sentenceSelectModeBtn.addEventListener('click', () => {
     isSentenceSelecting = !isSentenceSelecting;
     if (isSentenceSelecting) {
-      sentenceSelectModeBtn.textContent = '取消選擇';
+      sentenceSelectModeBtn.textContent = '完成選擇';
       sentenceSelectModeBtn.classList.replace('btn-secondary', 'btn-danger');
-      sentenceFinishSelectBtn.style.display = 'inline-block';
       sentenceMoveToUsedBtn.style.display = 'inline-block';
       sentenceDeleteSelectedBtn.style.display = 'inline-block';
     } else {
       sentenceSelectModeBtn.textContent = '選擇句子';
       sentenceSelectModeBtn.classList.replace('btn-danger', 'btn-secondary');
-      sentenceFinishSelectBtn.style.display = 'none';
       sentenceMoveToUsedBtn.style.display = 'none';
       sentenceDeleteSelectedBtn.style.display = 'none';
     }
     renderSentence();
   });
 
-  sentenceFinishSelectBtn.addEventListener('click', () => {
-    const checked = document.querySelectorAll('.sentence-checkbox:checked');
-    checked.forEach(cb => {
-      if (!selectedSentences.includes(cb.value)) selectedSentences.push(cb.value);
+  function handleSentenceClick(s, type, idx) {
+    if (type === 'unused' && isSentenceSelecting) {
+      if (selectedSentences.includes(s)) {
+        selectedSentences = selectedSentences.filter(x => x !== s);
+      } else {
+        selectedSentences.push(s);
+      }
+      renderSentence();
+    } else {
+      openActionModal('sentence', s, type, idx);
+    }
+  }
+
+  // 將「未使用句庫」中已點選的句子移至「已使用句庫」
+  sentenceMoveToUsedBtn.addEventListener('click', () => {
+    const targets = selectedSentences.filter(s => unusedSentences.includes(s));
+    if (targets.length === 0) return alert('請先在「未使用句庫」點選要移動的句子！');
+    if (!confirm(`確定要將這 ${targets.length} 條句子移至「已使用句庫」嗎？`)) return;
+    targets.forEach(s => {
+      const idx = unusedSentences.indexOf(s);
+      if (idx > -1) unusedSentences.splice(idx, 1);
+      usedSentences.push(s);
     });
-    sentenceSelectModeBtn.click();
+    sortByStroke(usedSentences);
+    selectedSentences = selectedSentences.filter(s => !targets.includes(s));
+    saveSentenceCloud();
     renderSentence();
   });
 
-  // 將「未使用句庫」中已勾選的句子移至「已使用句庫」
-  sentenceMoveToUsedBtn.addEventListener('click', () => {
-    const checked = Array.from(document.querySelectorAll('.sentence-checkbox:checked')).map(cb => cb.value);
-    if (checked.length === 0) return alert('請先勾選要移動的句子！');
-    if (!confirm(`確定要將這 ${checked.length} 條句子移至「已使用句庫」嗎？`)) return;
-    checked.forEach(s => {
-      const idx = unusedSentences.indexOf(s);
-      if (idx > -1) {
-        unusedSentences.splice(idx, 1);
-        usedSentences.push(s);
-      }
-    });
-    sortByStroke(usedSentences);
-    saveSentenceCloud();
-    sentenceSelectModeBtn.click();
-  });
-
-  // 刪除「未使用句庫」中已勾選的句子
+  // 刪除「未使用句庫」中已點選的句子
   sentenceDeleteSelectedBtn.addEventListener('click', () => {
-    const checked = Array.from(document.querySelectorAll('.sentence-checkbox:checked')).map(cb => cb.value);
-    if (checked.length === 0) return alert('請先勾選要刪除的句子！');
-    if (!confirm(`確定要刪除這 ${checked.length} 條句子嗎？此動作無法復原。`)) return;
-    unusedSentences = unusedSentences.filter(s => !checked.includes(s));
+    const targets = selectedSentences.filter(s => unusedSentences.includes(s));
+    if (targets.length === 0) return alert('請先在「未使用句庫」點選要刪除的句子！');
+    if (!confirm(`確定要刪除這 ${targets.length} 條句子嗎？此動作無法復原。`)) return;
+    unusedSentences = unusedSentences.filter(s => !targets.includes(s));
+    selectedSentences = selectedSentences.filter(s => !targets.includes(s));
     saveSentenceCloud();
-    sentenceSelectModeBtn.click();
+    renderSentence();
   });
 
   // 「已使用句庫」多選刪除模式切換
@@ -1413,16 +1420,10 @@
     unusedSentences.forEach((s, idx) => {
       const match = !sentenceSearchTerm || s.toLowerCase().includes(sentenceSearchTerm);
       const div = document.createElement('div');
-      div.className = `sentence-item ${isSentenceSelecting ? 'selectable' : ''} ${match ? '' : 'search-hidden'}`;
-      if (isSentenceSelecting) {
-        div.innerHTML = `
-          <input type="checkbox" class="sentence-checkbox" value="${s}" id="sent_${idx}">
-          <label for="sent_${idx}" style="cursor: pointer; flex: 1;">${highlightMatch(s, sentenceSearchTerm)}</label>
-        `;
-      } else {
-        div.innerHTML = highlightMatch(s, sentenceSearchTerm);
-        div.onclick = () => openActionModal('sentence', s, 'unused', idx);
-      }
+      const checked = selectedSentences.includes(s);
+      div.className = `sentence-item ${isSentenceSelecting && checked ? 'selected-highlight' : ''} ${match ? '' : 'search-hidden'}`;
+      div.innerHTML = highlightMatch(s, sentenceSearchTerm);
+      div.onclick = () => handleSentenceClick(s, 'unused', idx);
       unusedSentenceList.appendChild(div);
     });
 
