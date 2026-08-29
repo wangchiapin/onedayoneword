@@ -463,6 +463,8 @@
           <span>已使用</span>
           <div class="header-actions">
             <span id="usedWordCount" style="font-size: 13px; color: var(--text-muted);">0 筆</span>
+            <button class="btn btn-secondary" id="wordUsedSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">多選</button>
+            <button class="btn btn-danger" id="wordUsedDeleteSelectedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">刪除所選</button>
             <button class="btn-clear" id="clearUsedWordBtn">清空</button>
           </div>
         </div>
@@ -476,6 +478,8 @@
           <div class="header-actions">
             <span id="unusedWordCount" style="font-size: 13px; color: var(--success);">0 筆</span>
             <button class="btn btn-select-mode" id="wordSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">選擇</button>
+            <button class="btn btn-import" id="wordMoveToUsedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">移至已使用</button>
+            <button class="btn btn-danger" id="wordDeleteSelectedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">刪除所選</button>
             <button class="btn-clear" id="clearUnusedWordBtn">清空</button>
           </div>
         </div>
@@ -546,6 +550,8 @@
           <span>已使用句庫</span>
           <div class="header-actions">
             <span id="usedSentenceCount" style="font-size: 13px; color: var(--text-muted);">0 筆</span>
+            <button class="btn btn-secondary" id="sentenceUsedSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">多選</button>
+            <button class="btn btn-danger" id="sentenceUsedDeleteSelectedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">刪除所選</button>
             <button class="btn-clear" id="clearUsedSentenceBtn">清空已使用</button>
           </div>
         </div>
@@ -559,7 +565,9 @@
           <div class="header-actions">
             <span id="unusedSentenceCount" style="font-size: 13px; color: var(--success);">0 筆</span>
             <button class="btn btn-secondary" id="sentenceSelectModeBtn" style="padding: 3px 8px; font-size: 12px;">選擇句子</button>
-            <button class="btn btn-import" id="sentenceFinishSelectBtn" style="display: none; padding: 3px 8px; font-size: 12px;">點選完畢</button>
+            <button class="btn btn-import" id="sentenceFinishSelectBtn" style="display: none; padding: 3px 8px; font-size: 12px;">移至已選取</button>
+            <button class="btn btn-import" id="sentenceMoveToUsedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">移至已使用</button>
+            <button class="btn btn-danger" id="sentenceDeleteSelectedBtn" style="display: none; padding: 3px 8px; font-size: 12px;">刪除所選</button>
             <button class="btn-clear" id="clearUnusedSentenceBtn">清空未使用</button>
           </div>
         </div>
@@ -803,12 +811,27 @@
   const selectedWordTableBody = document.getElementById('selectedWordTableBody');
   const selectedWordCount = document.getElementById('selectedWordCount');
   const wordSelectModeBtn = document.getElementById('wordSelectModeBtn');
+  const wordMoveToUsedBtn = document.getElementById('wordMoveToUsedBtn');
+  const wordDeleteSelectedBtn = document.getElementById('wordDeleteSelectedBtn');
+  const wordUsedSelectModeBtn = document.getElementById('wordUsedSelectModeBtn');
+  const wordUsedDeleteSelectedBtn = document.getElementById('wordUsedDeleteSelectedBtn');
   const clearUsedWordBtn = document.getElementById('clearUsedWordBtn');
   const clearUnusedWordBtn = document.getElementById('clearUnusedWordBtn');
   const clearSelectedWordBtn = document.getElementById('clearSelectedWordBtn');
   const copyAllWordsBtn = document.getElementById('copyAllWordsBtn');
   const randomPickBtn = document.getElementById('randomPickBtn');
   const randomNumInput = document.getElementById('randomNumInput');
+
+  // 已使用詞彙多選刪除狀態
+  let wordUsedSelectMode = false;
+  let wordUsedDeleteSelection = [];
+
+  // 一鍵複製提示詞（每日一字）
+  const WORD_COPY_PROMPT = `翻譯成漢語拼音(每個字分開、全部小寫)、西班牙文(開頭不要大寫)跟英文(開頭不要大寫) 格式如下(直接給句子，不要標題)： 
+繁體中文 
+漢語拼音 
+西班牙文 
+英文`;
 
   function addWord() {
     const text = wordInput.value.trim();
@@ -832,10 +855,66 @@
     if (isWordSelecting) {
       wordSelectModeBtn.textContent = '完成選擇';
       wordSelectModeBtn.classList.add('active');
+      wordMoveToUsedBtn.style.display = 'inline-block';
+      wordDeleteSelectedBtn.style.display = 'inline-block';
     } else {
       wordSelectModeBtn.textContent = '選擇';
       wordSelectModeBtn.classList.remove('active');
+      wordMoveToUsedBtn.style.display = 'none';
+      wordDeleteSelectedBtn.style.display = 'none';
     }
+  });
+
+  // 將「未使用」欄位中已勾選（點選）的詞彙移至「已使用」
+  wordMoveToUsedBtn.addEventListener('click', () => {
+    const targets = selectedWords.filter(w => unusedWords.includes(w));
+    if (targets.length === 0) return alert('請先在「未使用」欄位點選要移動的詞彙！');
+    if (!confirm(`確定要將這 ${targets.length} 個詞彙移至「已使用」嗎？`)) return;
+    targets.forEach(w => {
+      const idx = unusedWords.indexOf(w);
+      if (idx > -1) unusedWords.splice(idx, 1);
+      usedWords.push(w);
+    });
+    selectedWords = selectedWords.filter(w => !targets.includes(w));
+    saveVocabCloud();
+    renderVocab();
+  });
+
+  // 刪除「未使用」欄位中已勾選（點選）的詞彙
+  wordDeleteSelectedBtn.addEventListener('click', () => {
+    const targets = selectedWords.filter(w => unusedWords.includes(w));
+    if (targets.length === 0) return alert('請先在「未使用」欄位點選要刪除的詞彙！');
+    if (!confirm(`確定要刪除這 ${targets.length} 個詞彙嗎？此動作無法復原。`)) return;
+    unusedWords = unusedWords.filter(w => !targets.includes(w));
+    selectedWords = selectedWords.filter(w => !targets.includes(w));
+    saveVocabCloud();
+    renderVocab();
+  });
+
+  // 「已使用」欄位多選刪除模式切換
+  wordUsedSelectModeBtn.addEventListener('click', () => {
+    wordUsedSelectMode = !wordUsedSelectMode;
+    wordUsedDeleteSelection = [];
+    if (wordUsedSelectMode) {
+      wordUsedSelectModeBtn.textContent = '取消多選';
+      wordUsedSelectModeBtn.classList.replace('btn-secondary', 'btn-danger');
+      wordUsedDeleteSelectedBtn.style.display = 'inline-block';
+    } else {
+      wordUsedSelectModeBtn.textContent = '多選';
+      wordUsedSelectModeBtn.classList.replace('btn-danger', 'btn-secondary');
+      wordUsedDeleteSelectedBtn.style.display = 'none';
+    }
+    renderVocab();
+  });
+
+  // 刪除「已使用」欄位中已勾選的詞彙
+  wordUsedDeleteSelectedBtn.addEventListener('click', () => {
+    if (wordUsedDeleteSelection.length === 0) return alert('請先勾選要刪除的詞彙！');
+    if (!confirm(`確定要刪除這 ${wordUsedDeleteSelection.length} 個已使用詞彙嗎？此動作無法復原。`)) return;
+    usedWords = usedWords.filter(w => !wordUsedDeleteSelection.includes(w));
+    wordUsedDeleteSelection = [];
+    saveVocabCloud();
+    renderVocab();
   });
 
   function handleWordClick(word, type, index) {
@@ -864,8 +943,9 @@
 
   copyAllWordsBtn.addEventListener('click', () => {
     if (selectedWords.length === 0) return alert('目前沒有選取任何詞彙！');
-    navigator.clipboard.writeText(selectedWords.join('\n')).then(() => {
-      alert(`已成功複製 ${selectedWords.length} 個詞彙！`);
+    const content = `${WORD_COPY_PROMPT}\n\n${selectedWords.join('\n')}`;
+    navigator.clipboard.writeText(content).then(() => {
+      alert(`已成功複製 ${selectedWords.length} 個詞彙（含提示詞）！`);
     });
   });
 
@@ -976,9 +1056,21 @@
     usedWordCount.textContent = `${usedWords.length} 筆`;
     usedWords.forEach((word, idx) => {
       const chip = document.createElement('div');
-      chip.className = 'word-chip used-chip';
+      const checked = wordUsedDeleteSelection.includes(word);
+      chip.className = `word-chip used-chip ${wordUsedSelectMode && checked ? 'selected-highlight' : ''}`;
       chip.textContent = word;
-      chip.onclick = () => handleWordClick(word, 'used', idx);
+      chip.onclick = () => {
+        if (wordUsedSelectMode) {
+          if (wordUsedDeleteSelection.includes(word)) {
+            wordUsedDeleteSelection = wordUsedDeleteSelection.filter(w => w !== word);
+          } else {
+            wordUsedDeleteSelection.push(word);
+          }
+          renderVocab();
+        } else {
+          handleWordClick(word, 'used', idx);
+        }
+      };
       usedWordList.appendChild(chip);
     });
 
@@ -1012,11 +1104,25 @@
   const selectedSentenceCount = document.getElementById('selectedSentenceCount');
   const sentenceSelectModeBtn = document.getElementById('sentenceSelectModeBtn');
   const sentenceFinishSelectBtn = document.getElementById('sentenceFinishSelectBtn');
+  const sentenceMoveToUsedBtn = document.getElementById('sentenceMoveToUsedBtn');
+  const sentenceDeleteSelectedBtn = document.getElementById('sentenceDeleteSelectedBtn');
+  const sentenceUsedSelectModeBtn = document.getElementById('sentenceUsedSelectModeBtn');
+  const sentenceUsedDeleteSelectedBtn = document.getElementById('sentenceUsedDeleteSelectedBtn');
   const clearUsedSentenceBtn = document.getElementById('clearUsedSentenceBtn');
   const clearUnusedSentenceBtn = document.getElementById('clearUnusedSentenceBtn');
   const clearSelectedSentenceBtn = document.getElementById('clearSelectedSentenceBtn');
   const copySelectedSentenceBtn = document.getElementById('copySelectedSentenceBtn');
   const sentenceSearchInput = document.getElementById('sentenceSearchInput');
+
+  // 已使用句庫多選刪除狀態
+  let isSentenceUsedSelecting = false;
+
+  // 一鍵複製提示詞（每日一句）
+  const SENTENCE_COPY_PROMPT = `翻譯成漢語拼音(每個字分開、全部小寫)、西班牙文(開頭大寫，不要句點)跟英文(開頭大寫，不要句點) 格式如下(直接給句子，不要標題)： 
+繁體中文 
+漢語拼音 
+西班牙文 
+英文`;
 
   function addSentence() {
     const text = sentenceInput.value.trim();
@@ -1067,10 +1173,14 @@
       sentenceSelectModeBtn.textContent = '取消選擇';
       sentenceSelectModeBtn.classList.replace('btn-secondary', 'btn-danger');
       sentenceFinishSelectBtn.style.display = 'inline-block';
+      sentenceMoveToUsedBtn.style.display = 'inline-block';
+      sentenceDeleteSelectedBtn.style.display = 'inline-block';
     } else {
       sentenceSelectModeBtn.textContent = '選擇句子';
       sentenceSelectModeBtn.classList.replace('btn-danger', 'btn-secondary');
       sentenceFinishSelectBtn.style.display = 'none';
+      sentenceMoveToUsedBtn.style.display = 'none';
+      sentenceDeleteSelectedBtn.style.display = 'none';
     }
     renderSentence();
   });
@@ -1084,10 +1194,63 @@
     renderSentence();
   });
 
+  // 將「未使用句庫」中已勾選的句子移至「已使用句庫」
+  sentenceMoveToUsedBtn.addEventListener('click', () => {
+    const checked = Array.from(document.querySelectorAll('.sentence-checkbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert('請先勾選要移動的句子！');
+    if (!confirm(`確定要將這 ${checked.length} 條句子移至「已使用句庫」嗎？`)) return;
+    checked.forEach(s => {
+      const idx = unusedSentences.indexOf(s);
+      if (idx > -1) {
+        unusedSentences.splice(idx, 1);
+        usedSentences.push(s);
+      }
+    });
+    sortByStroke(usedSentences);
+    saveSentenceCloud();
+    sentenceSelectModeBtn.click();
+  });
+
+  // 刪除「未使用句庫」中已勾選的句子
+  sentenceDeleteSelectedBtn.addEventListener('click', () => {
+    const checked = Array.from(document.querySelectorAll('.sentence-checkbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert('請先勾選要刪除的句子！');
+    if (!confirm(`確定要刪除這 ${checked.length} 條句子嗎？此動作無法復原。`)) return;
+    unusedSentences = unusedSentences.filter(s => !checked.includes(s));
+    saveSentenceCloud();
+    sentenceSelectModeBtn.click();
+  });
+
+  // 「已使用句庫」多選刪除模式切換
+  sentenceUsedSelectModeBtn.addEventListener('click', () => {
+    isSentenceUsedSelecting = !isSentenceUsedSelecting;
+    if (isSentenceUsedSelecting) {
+      sentenceUsedSelectModeBtn.textContent = '取消多選';
+      sentenceUsedSelectModeBtn.classList.replace('btn-secondary', 'btn-danger');
+      sentenceUsedDeleteSelectedBtn.style.display = 'inline-block';
+    } else {
+      sentenceUsedSelectModeBtn.textContent = '多選';
+      sentenceUsedSelectModeBtn.classList.replace('btn-danger', 'btn-secondary');
+      sentenceUsedDeleteSelectedBtn.style.display = 'none';
+    }
+    renderSentence();
+  });
+
+  // 刪除「已使用句庫」中已勾選的句子
+  sentenceUsedDeleteSelectedBtn.addEventListener('click', () => {
+    const checked = Array.from(document.querySelectorAll('.sentence-used-checkbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert('請先勾選要刪除的句子！');
+    if (!confirm(`確定要刪除這 ${checked.length} 條已使用句子嗎？此動作無法復原。`)) return;
+    usedSentences = usedSentences.filter(s => !checked.includes(s));
+    saveSentenceCloud();
+    sentenceUsedSelectModeBtn.click();
+  });
+
   copySelectedSentenceBtn.addEventListener('click', () => {
     if (selectedSentences.length === 0) return alert('目前沒有選取任何句子！');
-    navigator.clipboard.writeText(selectedSentences.join('\n')).then(() => {
-      alert(`已成功複製 ${selectedSentences.length} 條句子！`);
+    const content = `${SENTENCE_COPY_PROMPT}\n\n${selectedSentences.join('\n')}`;
+    navigator.clipboard.writeText(content).then(() => {
+      alert(`已成功複製 ${selectedSentences.length} 條句子（含提示詞）！`);
     });
   });
 
@@ -1232,9 +1395,16 @@
     usedSentences.forEach((s, idx) => {
       const match = !sentenceSearchTerm || s.toLowerCase().includes(sentenceSearchTerm);
       const div = document.createElement('div');
-      div.className = `sentence-item ${match ? '' : 'search-hidden'}`;
-      div.innerHTML = highlightMatch(s, sentenceSearchTerm);
-      div.onclick = () => openActionModal('sentence', s, 'used', idx);
+      div.className = `sentence-item ${isSentenceUsedSelecting ? 'selectable' : ''} ${match ? '' : 'search-hidden'}`;
+      if (isSentenceUsedSelecting) {
+        div.innerHTML = `
+          <input type="checkbox" class="sentence-used-checkbox" value="${s}" id="usent_${idx}">
+          <label for="usent_${idx}" style="cursor: pointer; flex: 1;">${highlightMatch(s, sentenceSearchTerm)}</label>
+        `;
+      } else {
+        div.innerHTML = highlightMatch(s, sentenceSearchTerm);
+        div.onclick = () => openActionModal('sentence', s, 'used', idx);
+      }
       usedSentenceList.appendChild(div);
     });
 
